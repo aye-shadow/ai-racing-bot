@@ -1,0 +1,4 @@
+# Sample Context-Free Grammar (CFG)
+S -> A B | B A
+A -> a A | a
+B -> b B | b
