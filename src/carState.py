@@ -5,12 +5,10 @@ Created on Apr 5, 2012
 '''
 import msgParser
 
-class CarState(object):
+class CarState:
     '''
-    Class that hold all the car state variables
+    Class that holds all the car state variables
     '''
-
-
     def __init__(self):
         '''Constructor'''
         self.parser = msgParser.MsgParser()
@@ -89,7 +87,7 @@ class CarState(object):
         except KeyError:
             val = None
         
-        if val != None:
+        if val is not None:
             val = float(val[0])
         
         return val
@@ -100,7 +98,7 @@ class CarState(object):
         except KeyError:
             val = None
         
-        if val != None:
+        if val is not None:
             l = []
             for v in val:
                 l.append(float(v))
@@ -114,7 +112,7 @@ class CarState(object):
         except KeyError:
             val = None
         
-        if val != None:
+        if val is not None:
             val = int(val[0])
         
         return val
@@ -283,5 +281,3 @@ class CarState(object):
     
     def getZ(self):
         return self.z
-    
-    

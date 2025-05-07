@@ -4,12 +4,13 @@ Created on Apr 5, 2012
 @author: lanquarden
 '''
 
-class MsgParser(object):
+class MsgParser:
     '''
     A parser for received UDP messages and building UDP messages
     '''
     def __init__(self):
         '''Constructor'''
+        pass
         
     def parse(self, str_sensors):
         '''Return a dictionary with tags and values from the UDP message'''
@@ -23,15 +24,15 @@ class MsgParser(object):
                 substr = str_sensors[b_open + 1: b_close]
                 items = substr.split()
                 if len(items) < 2:
-                    print "Problem parsing substring: ", substr
+                    print(f"Problem parsing substring: {substr}")
                 else:
                     value = []
-                    for i in range(1,len(items)):
+                    for i in range(1, len(items)):
                         value.append(items[i])
                     sensors[items[0]] = value
                 b_open = str_sensors.find('(', b_close)
             else:
-                print "Problem parsing sensor string: ", str_sensors
+                print(f"Problem parsing sensor string: {str_sensors}")
                 return None
         
         return sensors
@@ -41,7 +42,7 @@ class MsgParser(object):
         msg = ''
         
         for key, value in dictionary.items():
-            if value != None and value[0] != None:
+            if value is not None and value[0] is not None:
                 msg += '(' + key
                 for val in value:
                     msg += ' ' + str(val)
