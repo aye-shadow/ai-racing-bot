@@ -8,15 +8,14 @@ import msgParser
 import carState
 import csv
 import os
-import keyboard
+from pynput import keyboard  # Replace 'keyboard' with 'pynput'
 import carControl
 
-class Driver(object):
+class Driver:
     '''
     A driver object for the SCRC
     '''
-
-    def __init__(self, stage,carmodel):
+    def __init__(self, stage, carmodel):
         self.WARM_UP = 0
         self.car_model = carmodel
         self.QUALIFYING = 1
@@ -36,10 +35,10 @@ class Driver(object):
         self.log_file = "telemetry_log.csv"
         file_exists = os.path.isfile(self.log_file)
 
-        with open(self.log_file, "ab") as file:
+        with open(self.log_file, "a", newline='') as file:
             writer = csv.writer(file)
             if not file_exists:  # Write headers if file doesn't exist
-                writer.writerow(["Car model","curLapTime", "speedX", "speedY", "speedZ", 
+                writer.writerow(["Car model", "curLapTime", "speedX", "speedY", "speedZ", 
                                  "trackPos", "steer", "gear", "rpm", "damage",
                                  "track", "opponents", "racePos", "acceleration", "brake"])
         self.manual_steer = True
@@ -47,10 +46,9 @@ class Driver(object):
         self.manual_gear = True
         self.setup_keyboard_listeners()
                 
-    
     def init(self):
         '''Return init string with rangefinder angles'''
-        self.angles = [0 for x in range(19)]
+        self.angles = [0] * 19
         
         for i in range(5):
             self.angles[i] = -90 + i * 15
@@ -66,7 +64,7 @@ class Driver(object):
         self.state.setFromMsg(msg)
 
         # Reset manual flags (for next iteration)
-        carmodel= self.car_model
+        carmodel = self.car_model
         curLapTime = self.state.getCurLapTime()
         speedX = self.state.getSpeedX()
         speedY = self.state.getSpeedY()
@@ -82,17 +80,13 @@ class Driver(object):
         track = ",".join(map(str, self.state.getTrack())) if self.state.getTrack() else ""
         opponents = ",".join(map(str, self.state.getOpponents())) if self.state.getOpponents() else ""
 
-
-
-        with open(self.log_file, "ab") as file:
+        with open(self.log_file, "a", newline='') as file:
             writer = csv.writer(file)
             writer.writerow([
-                carmodel,curLapTime, speedX, speedY, speedZ,
+                carmodel, curLapTime, speedX, speedY, speedZ,
                 trackPos, steer, gear, rpm,
-                damage, track, opponents, racePos, accel, brake,
-                
+                damage, track, opponents, racePos, accel, brake
             ])
-        
         
         self.manual_steer = True
         self.manual_throttle = True
@@ -101,19 +95,35 @@ class Driver(object):
         return self.control.toMsg()
     
     def setup_keyboard_listeners(self):
-        keyboard.on_press_key('left', lambda _: self.set_manual_steer(0.5))
-        keyboard.on_press_key('right', lambda _: self.set_manual_steer(-0.5))
-        keyboard.on_release_key('left', lambda _: self.set_manual_steer(0))
-        keyboard.on_release_key('right', lambda _: self.set_manual_steer(0))
+        def on_press(key):
+            try:
+                if key == keyboard.Key.left:
+                    self.set_manual_steer(0.5)
+                elif key == keyboard.Key.right:
+                    self.set_manual_steer(-0.5)
+                elif key == keyboard.Key.up:
+                    self.set_manual_throttle(0.7)
+                elif key == keyboard.Key.down:
+                    self.set_manual_throttle(-0.7)
+                elif key.char == 'v':
+                    self.set_manual_gear(1)  # Upshift
+                elif key.char == 'b':
+                    self.set_manual_gear(-1)  # Downshift
+            except AttributeError:
+                pass
 
-        keyboard.on_press_key('up', lambda _: self.set_manual_throttle(0.7))
-        keyboard.on_press_key('down', lambda _: self.set_manual_throttle(-0.7))
-        keyboard.on_release_key('up', lambda _: self.set_manual_throttle(0))
-        keyboard.on_release_key('down', lambda _: self.set_manual_throttle(0))
+        def on_release(key):
+            try:
+                if key == keyboard.Key.left or key == keyboard.Key.right:
+                    self.set_manual_steer(0)
+                elif key == keyboard.Key.up or key == keyboard.Key.down:
+                    self.set_manual_throttle(0)
+            except AttributeError:
+                pass
 
-        
-        keyboard.on_press_key('v', lambda _: self.set_manual_gear(1))  # Upshift
-        keyboard.on_press_key('b', lambda _: self.set_manual_gear(-1)) # Downshift
+        # Set up pynput listener
+        listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+        listener.start()
 
     def set_manual_steer(self, value):
         self.manual_steer = True
@@ -125,20 +135,16 @@ class Driver(object):
             self.control.setAccel(value)  # Throttle
             self.control.setBrake(0)
         else:
-            self.control.setBrake(-value) # Brake
+            self.control.setBrake(-value)  # Brake
             self.control.setAccel(0)
 
     def set_manual_gear(self, delta):
         self.manual_gear = True
         new_gear = max(-1, min(6, self.state.getGear() + delta))
         self.control.setGear(new_gear)
-    
-    
             
-        
     def onShutDown(self):
         pass
     
     def onRestart(self):
         pass
-        
